@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mileage Log</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --steel:#3B5266;
+    --steel-deep:#293B4A;
+    --orange:#E0783C;
+    --cream:#F7F8F8;
+    --paper:#FFFFFF;
+    --ink:#242A2E;
+    --ink-soft:#898F94;
+    --line:rgba(59,82,102,0.15);
+    --shadow: 0 16px 36px rgba(36,42,46,0.12);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:'Nunito', sans-serif;
+    background: radial-gradient(circle at 15% 0%, #ECEEF0 0%, var(--cream) 45%);
+    color:var(--ink);
+    min-height:100vh;
+    display:flex; flex-direction:column; align-items:center;
+  }
+  h1,h2,h3,.display{font-family:'Poppins', sans-serif;}
+  .app{
+    width:100%; max-width:560px; min-height:100vh;
+    display:flex; flex-direction:column; position:relative;
+    background:var(--paper); box-shadow:var(--shadow);
+  }
+
+  .topbar{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:14px 18px; background:var(--steel); color:#fff;
+    position:sticky; top:0; z-index:30;
+  }
+  .topbar .brand{display:flex; align-items:center; gap:8px; font-weight:800; font-size:15px;}
+  .topbar .brand .ic{font-size:18px;}
+  .topbar-actions{display:flex; gap:8px;}
+  .icon-btn{
+    border:none; background:rgba(255,255,255,0.18); color:#fff;
+    width:34px;height:34px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    cursor:pointer;font-size:15px; transition:background .2s, transform .2s;
+  }
+  .icon-btn:hover{background:rgba(255,255,255,0.3); transform:scale(1.05);}
+  .back-btn{
+    border:none; background:rgba(255,255,255,0.18); color:#fff;
+    padding:8px 14px; border-radius:999px; font-weight:800; font-size:13px;
+    cursor:pointer; display:flex; align-items:center; gap:6px;
+  }
+
+  .content{flex:1; padding:18px 16px 40px;}
+
+  .hero{
+    display:flex; align-items:center; gap:14px;
+    background:linear-gradient(135deg, var(--steel), var(--steel-deep));
+    border-radius:22px; padding:18px; color:#fff; margin-bottom:16px;
+    box-shadow:var(--shadow);
+  }
+  .hero .em{font-size:40px; flex:none;}
+  .hero .txt h1{margin:0; font-size:19px; line-height:1.2;}
+  .hero .txt p{margin:4px 0 0; font-size:12px; opacity:.88;}
+
+  .new-btn{
+    width:100%; border:none; background:var(--orange); color:#fff;
+    font-family:'Poppins'; font-weight:700; font-size:14.5px;
+    padding:13px; border-radius:14px; cursor:pointer; margin-bottom:16px;
+    box-shadow:0 10px 20px rgba(224,120,60,0.3); transition:transform .15s;
+    display:flex; align-items:center; justify-content:center; gap:8px;
+  }
+  .new-btn:hover{transform:translateY(-2px);}
+
+  .empty-state{ text-align:center; padding:44px 20px; color:var(--ink-soft); }
+  .empty-state .g{font-size:44px; margin-bottom:8px;}
+  .empty-state h3{margin:0 0 6px; color:var(--ink);}
+  .empty-state p{font-size:13px; line-height:1.5;}
+
+  .entry-list{display:flex; flex-direction:column; gap:12px;}
+  .entry-card{
+    background:var(--cream); border-radius:18px; padding:14px 16px;
+    display:flex; align-items:center; gap:12px; cursor:pointer;
+    border:2px solid transparent; transition:border-color .15s, transform .15s;
+    position:relative;
+  }
+  .entry-card:hover{border-color:var(--steel); transform:translateX(2px);}
+  .entry-card .swatch{
+    width:46px; height:46px; border-radius:12px; flex:none;
+    background:var(--steel); color:#fff; display:flex; align-items:center; justify-content:center;
+    font-size:19px;
+  }
+  .entry-card .info{flex:1; min-width:0;}
+  .entry-card .info .name{font-weight:800; font-size:15px; color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .entry-card .info .meta{font-size:12px; color:var(--ink-soft); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .entry-card .miles{ flex:none; font-size:12px; font-weight:800; color:var(--steel); background:#fff; border-radius:999px; padding:5px 10px; }
+  .entry-card .del{
+    position:absolute; top:8px; right:8px; border:none; background:transparent;
+    color:var(--ink-soft); font-size:13px; cursor:pointer; padding:4px;
+  }
+
+  .top-fields{
+    background:var(--paper); border:1px solid var(--line); border-radius:18px;
+    padding:16px; margin-bottom:16px; box-shadow:0 6px 16px rgba(36,42,46,0.05);
+  }
+  .top-fields h2{
+    font-size:14px; margin:0 0 12px; color:var(--steel);
+    display:flex; align-items:center; gap:7px;
+    text-transform:uppercase; letter-spacing:.4px; font-family:'Nunito'; font-weight:800;
+  }
+  .two-col{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
+  .field{margin-bottom:12px;}
+  .field:last-child{margin-bottom:0;}
+  .field label{
+    display:block; font-size:11px; font-weight:800; color:var(--ink-soft);
+    text-transform:uppercase; letter-spacing:.4px; margin-bottom:5px;
+  }
+  .field input[type="text"]{
+    width:100%; border:2px solid var(--line); border-radius:12px;
+    padding:9px 11px; font-size:14px; font-family:'Nunito'; color:var(--ink);
+    background:var(--cream); transition:border-color .15s;
+  }
+  .field input[type="text"]:focus{outline:none; border-color:var(--steel);}
+
+  .summary-bar{
+    display:flex; justify-content:space-between; align-items:center;
+    background:var(--steel); color:#fff; border-radius:14px; padding:12px 16px; margin-bottom:16px;
+  }
+  .summary-bar .label{ font-size:12px; opacity:.85; font-weight:700; }
+  .summary-bar .value{ font-size:18px; font-weight:800; font-family:'Poppins'; }
+
+  .trip-card{
+    background:var(--cream); border-radius:14px; padding:12px; margin-bottom:10px; position:relative;
+  }
+  .trip-card:last-child{ margin-bottom:0; }
+  .trip-card .rm{
+    position:absolute; top:8px; right:8px; border:none; background:transparent;
+    color:var(--ink-soft); font-size:13px; cursor:pointer;
+  }
+  .trip-row1{ display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px; }
+  .trip-row2{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:8px; }
+  .trip-row3{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .trip-card input{
+    width:100%; border:2px solid var(--line); border-radius:9px; padding:7px 9px;
+    font-size:12.5px; background:#fff; color:var(--ink);
+  }
+  .trip-card input:focus{ outline:none; border-color:var(--steel); }
+  .trip-card input.auto{ background:#EFEFEF; color:var(--ink-soft); font-style:italic; }
+  .trip-mini-lbl{ font-size:9px; font-weight:800; color:var(--ink-soft); text-transform:uppercase; display:block; margin-bottom:3px; }
+
+  .add-trip-btn{
+    border:2px dashed var(--line); background:transparent; color:var(--steel);
+    border-radius:12px; padding:11px; width:100%; font-weight:800; font-size:13px; cursor:pointer; margin-top:4px;
+  }
+
+  .export-btn{
+    width:100%; border:2px solid var(--steel); background:#fff; color:var(--steel);
+    font-family:'Nunito'; font-weight:800; font-size:13.5px;
+    padding:11px; border-radius:14px; cursor:pointer; margin-bottom:16px;
+    display:flex; align-items:center; justify-content:center; gap:8px;
+    transition:background .15s, color .15s;
+  }
+  .export-btn:hover{background:var(--steel); color:#fff;}
+
+  .save-note{ text-align:center; font-size:11px; color:var(--ink-soft); margin-top:6px; }
+
+  .modal-backdrop{
+    position:fixed; inset:0; background:rgba(36,42,46,0.5);
+    display:none; align-items:center; justify-content:center; z-index:60; padding:20px;
+  }
+  .modal-backdrop.show{display:flex;}
+  .modal{background:#fff; border-radius:20px; padding:22px; max-width:340px; text-align:center;}
+  .modal h3{margin-top:0; font-family:'Poppins';}
+  .modal .row{display:flex; gap:10px; margin-top:16px;}
+  .modal button{flex:1; border:none; padding:11px; border-radius:999px; font-weight:800; cursor:pointer;}
+  .modal .confirm{background:var(--steel); color:#fff;}
+  .modal .cancel{background:var(--cream); color:var(--ink);}
+
+  .toast{
+    position:fixed; left:50%; bottom:20px; transform:translateX(-50%) translateY(20px);
+    max-width:480px; width:calc(100% - 32px);
+    background:#B93A3A; color:#fff; padding:13px 16px; border-radius:14px;
+    font-size:13px; font-weight:700; line-height:1.4; box-shadow:0 12px 28px rgba(0,0,0,0.25);
+    z-index:80; display:flex; align-items:flex-start; gap:10px;
+    opacity:0; pointer-events:none; transition:opacity .25s, transform .25s;
+  }
+  .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); pointer-events:auto; }
+  .toast .toast-ic{ font-size:16px; flex:none; }
+  .toast .toast-close{
+    flex:none; background:rgba(255,255,255,0.2); border:none; color:#fff;
+    width:22px; height:22px; border-radius:50%; cursor:pointer; font-size:12px;
+    display:flex; align-items:center; justify-content:center; margin-left:auto;
+  }
+
+  /* ---------- PRINT / PDF EXPORT ---------- */
+  #printArea{display:none;}
+  @media print{
+    body *{ visibility:hidden; }
+    #printArea, #printArea *{ visibility:visible; }
+    #printArea{ display:block; position:absolute; left:0; top:0; width:100%; padding:0; }
+    @page{ margin:10mm; }
+  }
+  .print-page{ font-family:'Nunito', sans-serif; color:#242A2E; }
+  .print-page .p-header{ text-align:center; margin-bottom:12px; }
+  .print-page .p-header h1{ font-family:'Poppins'; font-size:19px; color:var(--steel); margin:0 0 2px; }
+  .print-meta{ font-size:11px; margin-bottom:10px; display:flex; flex-wrap:wrap; gap:12px; }
+  .print-meta b{ color:var(--steel); }
+  table.print-table{ width:100%; border-collapse:collapse; font-size:9px; margin-bottom:8px; }
+  table.print-table th, table.print-table td{ border:1px solid #ccc; padding:3px 4px; text-align:left; }
+  table.print-table th{ background:#E9EBED; font-size:8.5px; text-transform:uppercase; }
+  .print-summary{ text-align:center; font-weight:800; color:var(--steel); font-size:13px; margin-bottom:10px; }
+  .print-footer{ text-align:center; font-size:9px; color:var(--ink-soft); margin-top:14px; }
+
+  @media (max-width:380px){ .trip-row2{ grid-template-columns:1fr 1fr; } }
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <div class="topbar">
+    <div id="topbarLeft" class="brand"><span class="ic">🚗</span><span>Mileage Log</span></div>
+    <div class="topbar-actions" id="topbarActions">
+      <button class="icon-btn" id="clearAllBtn" title="Clear all logs">↺</button>
+    </div>
+  </div>
+  <div class="content" id="content"></div>
+</div>
+
+<div id="printArea"></div>
+
+<div class="modal-backdrop" id="confirmModal">
+  <div class="modal">
+    <h3 id="confirmTitle">Are you sure?</h3>
+    <p id="confirmBody" style="font-size:13px;color:var(--ink-soft)"></p>
+    <div class="row">
+      <button class="cancel" id="confirmCancel">Cancel</button>
+      <button class="confirm" id="confirmOk">Yes, do it</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="storageToast">
+  <span class="toast-ic">⚠️</span>
+  <span id="storageToastMsg">Storage is full — this didn't save.</span>
+  <button class="toast-close" id="storageToastClose">✕</button>
+</div>
+
+<script>
+const LOGS_KEY = 'mileage-log:sheets';
+
+function blankTrip(){
+  return { name:'', dateTime:'', startMileage:'', finalMileage:'', milesTravelled:'', purpose:'', route:'' };
+}
+function blankSheet(){
+  return {
+    id:'s'+Date.now()+Math.random().toString(36).slice(2,7),
+    createdAt: Date.now(),
+    licencePlate:'', startMileage:'', endMileage:'',
+    driverName:'', startDate:'', endDate:'',
+    trips: Array.from({length:3}, blankTrip)
+  };
+}
+
+let sheets = [];
+let view = 'list'; // 'list' | 'sheet'
+let currentId = null;
+
+function loadAll(){
+  try{ const raw = localStorage.getItem(LOGS_KEY); sheets = raw ? JSON.parse(raw) : []; }catch(e){ sheets = []; }
+}
+function saveSheets(){
+  try{
+    localStorage.setItem(LOGS_KEY, JSON.stringify(sheets));
+  }catch(e){
+    console.error(e);
+    showStorageToast('Storage is full, so that last change didn\'t save. Try deleting an old log sheet to free up space.');
+  }
+}
+let storageToastTimer = null;
+function showStorageToast(msg){
+  const toast = document.getElementById('storageToast');
+  const msgEl = document.getElementById('storageToastMsg');
+  if(!toast || !msgEl) return;
+  msgEl.textContent = msg;
+  toast.classList.add('show');
+  if(storageToastTimer) clearTimeout(storageToastTimer);
+  storageToastTimer = setTimeout(()=>toast.classList.remove('show'), 7000);
+}
+
+function getSheet(id){ return sheets.find(s=>s.id===id); }
+
+function el(tag, cls, html){
+  const e = document.createElement(tag);
+  if(cls) e.className = cls;
+  if(html!==undefined) e.innerHTML = html;
+  return e;
+}
+function escapeHtml(str){
+  return String(str==null?'':str).replace(/[&<>"']/g, s=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
+}
+function computeMiles(trip){
+  const s = parseFloat(trip.startMileage), f = parseFloat(trip.finalMileage);
+  if(!isNaN(s) && !isNaN(f) && f>=s) return (f-s);
+  return null;
+}
+function sumMiles(sheet){
+  return sheet.trips.reduce((sum, t)=>{
+    const auto = computeMiles(t);
+    const val = auto!=null ? auto : parseFloat(t.milesTravelled);
+    return sum + (isNaN(val) ? 0 : val);
+  }, 0);
+}
+function fmtNum(n){ return (Math.round(n*100)/100).toString(); }
+
+function render(){
+  const content = document.getElementById('content');
+  content.innerHTML = '';
+  const topbarLeft = document.getElementById('topbarLeft');
+  const topbarActions = document.getElementById('topbarActions');
+
+  if(view==='list'){
+    topbarLeft.innerHTML = `<span class="ic">🚗</span><span>Mileage Log</span>`;
+    topbarActions.innerHTML = `<button class="icon-btn" id="clearAllBtn" title="Clear all logs">↺</button>`;
+    document.getElementById('clearAllBtn').addEventListener('click', confirmClearAll);
+    content.appendChild(renderList());
+  } else {
+    const sheet = getSheet(currentId);
+    topbarLeft.innerHTML = `<button class="back-btn" id="backBtn">‹ Log</button>`;
+    topbarActions.innerHTML = `<button class="icon-btn" id="printSheetBtn" title="Export / Print this log">🖨️</button><button class="icon-btn" id="deleteSheetBtn" title="Delete this log">🗑</button>`;
+    document.getElementById('backBtn').addEventListener('click', ()=>{ view='list'; render(); });
+    document.getElementById('printSheetBtn').addEventListener('click', ()=>exportSheetPDF(sheet));
+    document.getElementById('deleteSheetBtn').addEventListener('click', ()=>confirmDeleteSheet(sheet.id));
+    content.appendChild(renderSheetView(sheet));
+  }
+}
+
+// ---------- LIST VIEW ----------
+function renderList(){
+  const wrap = el('div');
+
+  const hero = el('div','hero');
+  hero.innerHTML = `
+    <div class="em">🚗</div>
+    <div class="txt">
+      <h1>Mileage Log</h1>
+      <p>${sheets.length} log sheet${sheets.length===1?'':'s'}</p>
+    </div>
+  `;
+  wrap.appendChild(hero);
+
+  const newBtn = el('button','new-btn','+ Start a New Log Sheet');
+  newBtn.addEventListener('click', ()=>{
+    const s = blankSheet();
+    sheets.unshift(s);
+    saveSheets();
+    currentId = s.id;
+    view = 'sheet';
+    render();
+  });
+  wrap.appendChild(newBtn);
+
+  if(sheets.length===0){
+    const empty = el('div','empty-state');
+    empty.innerHTML = `<div class="g">🛣️</div><h3>No log sheets yet</h3><p>Tap "Start a New Log Sheet" to begin tracking trips for a vehicle.</p>`;
+    wrap.appendChild(empty);
+    return wrap;
+  }
+
+  const list = el('div','entry-list');
+  sheets
+    .slice()
+    .sort((a,b)=> (b.updatedAt||b.createdAt) - (a.updatedAt||a.createdAt))
+    .forEach(sheet=>{
+      const card = el('div','entry-card');
+      const name = sheet.licencePlate || 'Unnamed vehicle';
+      const meta = [sheet.driverName, sheet.startDate].filter(Boolean).join(' · ');
+      const total = sumMiles(sheet);
+      card.innerHTML = `
+        <div class="swatch">🚙</div>
+        <div class="info">
+          <div class="name">${escapeHtml(name)}</div>
+          <div class="meta">${escapeHtml(meta || 'No details yet')}</div>
+        </div>
+        ${total>0 ? `<div class="miles">${fmtNum(total)} mi</div>` : ''}
+        <button class="del" data-id="${sheet.id}" title="Delete">✕</button>
+      `;
+      card.addEventListener('click', (e)=>{
+        if(e.target.closest('.del')) return;
+        currentId = sheet.id; view='sheet'; render();
+      });
+      card.querySelector('.del').addEventListener('click', (e)=>{
+        e.stopPropagation();
+        confirmDeleteSheet(sheet.id);
+      });
+      list.appendChild(card);
+    });
+  wrap.appendChild(list);
+  return wrap;
+}
+
+// ---------- SHEET VIEW ----------
+function renderSheetView(sheet){
+  const wrap = el('div');
+  function touch(){ sheet.updatedAt = Date.now(); saveSheets(); }
+
+  const exportBtn = el('button','export-btn','🖨️ Export / Print This Log');
+  exportBtn.addEventListener('click', ()=>exportSheetPDF(sheet));
+  wrap.appendChild(exportBtn);
+
+  function textField(container, obj, key, labelText, placeholder){
+    const f = el('div','field');
+    f.innerHTML = `<label>${labelText}</label>`;
+    const inp = el('input'); inp.type='text'; inp.value = obj[key]||''; if(placeholder) inp.placeholder = placeholder;
+    inp.addEventListener('input', ()=>{ obj[key] = inp.value; touch(); });
+    f.appendChild(inp);
+    container.appendChild(f);
+  }
+
+  const vehicleBlock = el('div','top-fields');
+  vehicleBlock.innerHTML = `<h2>🚙 Vehicle</h2>`;
+  textField(vehicleBlock, sheet, 'licencePlate', 'Licence Plate No');
+  const r1 = el('div','two-col'); vehicleBlock.appendChild(r1);
+  textField(r1, sheet, 'startMileage', 'Start Mileage');
+  textField(r1, sheet, 'endMileage', 'End Mileage');
+  wrap.appendChild(vehicleBlock);
+
+  const driverBlock = el('div','top-fields');
+  driverBlock.innerHTML = `<h2>🧑 Driver & Period</h2>`;
+  textField(driverBlock, sheet, 'driverName', 'Driver Name');
+  const r2 = el('div','two-col'); driverBlock.appendChild(r2);
+  textField(r2, sheet, 'startDate', 'Start Date');
+  textField(r2, sheet, 'endDate', 'End Date');
+  wrap.appendChild(driverBlock);
+
+  const summaryBar = el('div','summary-bar');
+  wrap.appendChild(summaryBar);
+  function renderSummary(){
+    const total = sumMiles(sheet);
+    const tripCount = sheet.trips.filter(t=>t.name||t.route||t.purpose).length;
+    summaryBar.innerHTML = `<span class="label">${tripCount} trip${tripCount===1?'':'s'} logged</span><span class="value">${fmtNum(total)} mi total</span>`;
+  }
+  renderSummary();
+
+  const tripsBlock = el('div','top-fields');
+  tripsBlock.innerHTML = `<h2>🛣️ Trips</h2>`;
+  const tripsWrap = el('div');
+  function renderTrips(){
+    tripsWrap.innerHTML = '';
+    sheet.trips.forEach((t, i)=>{
+      const card = el('div','trip-card');
+      if(sheet.trips.length>1){
+        const rm = el('button','rm','✕');
+        rm.addEventListener('click', ()=>{ sheet.trips.splice(i,1); touch(); renderTrips(); renderSummary(); });
+        card.appendChild(rm);
+      }
+      function miniField(container, key, labelText, opts={}){
+        const f = el('div');
+        f.innerHTML = `<span class="trip-mini-lbl">${labelText}</span>`;
+        const inp = el('input'); inp.type='text';
+        inp.value = t[key]||'';
+        if(opts.auto) inp.classList.add('auto');
+        inp.addEventListener('input', ()=>{
+          t[key] = inp.value; touch();
+          if(key==='startMileage' || key==='finalMileage'){ updateAutoMiles(); }
+          renderSummary();
+        });
+        f.appendChild(inp);
+        container.appendChild(f);
+        return inp;
+      }
+      const row1 = el('div','trip-row1');
+      miniField(row1, 'name', 'Name');
+      miniField(row1, 'dateTime', 'Date / Time');
+      card.appendChild(row1);
+
+      const row2 = el('div','trip-row2');
+      miniField(row2, 'startMileage', 'Start Mileage');
+      miniField(row2, 'finalMileage', 'Final Mileage');
+      const milesInp = miniField(row2, 'milesTravelled', 'Miles Travelled');
+      card.appendChild(row2);
+
+      function updateAutoMiles(){
+        const auto = computeMiles(t);
+        if(auto!=null){
+          milesInp.value = fmtNum(auto);
+          milesInp.classList.add('auto');
+          t.milesTravelled = milesInp.value;
+        } else {
+          milesInp.classList.remove('auto');
+        }
+      }
+      updateAutoMiles();
+
+      const row3 = el('div','trip-row3');
+      miniField(row3, 'purpose', 'Purpose of the Trip');
+      miniField(row3, 'route', 'Travel Route');
+      card.appendChild(row3);
+
+      tripsWrap.appendChild(card);
+    });
+  }
+  renderTrips();
+  tripsBlock.appendChild(tripsWrap);
+  const addBtn = el('button','add-trip-btn','+ Add Another Trip');
+  addBtn.addEventListener('click', ()=>{ sheet.trips.push(blankTrip()); touch(); renderTrips(); renderSummary(); });
+  tripsBlock.appendChild(addBtn);
+  wrap.appendChild(tripsBlock);
+
+  const note = el('div','save-note','Everything here saves automatically on this device. Miles Travelled fills in automatically when Start and Final Mileage are both numbers — edit it yourself anytime.');
+  wrap.appendChild(note);
+
+  return wrap;
+}
+
+// ---------- print / PDF export ----------
+function pv(val){ return val ? escapeHtml(val) : '—'; }
+function exportSheetPDF(sheet){
+  const area = document.getElementById('printArea');
+  const rowsHtml = sheet.trips
+    .filter(t=>t.name||t.dateTime||t.startMileage||t.finalMileage||t.purpose||t.route)
+    .map(t=>{
+      const auto = computeMiles(t);
+      const miles = auto!=null ? fmtNum(auto) : (t.milesTravelled || '—');
+      return `<tr><td>${pv(t.name)}</td><td>${pv(t.dateTime)}</td><td>${pv(t.startMileage)}</td><td>${pv(t.finalMileage)}</td><td>${miles}</td><td>${pv(t.purpose)}</td><td>${pv(t.route)}</td></tr>`;
+    }).join('');
+  const total = sumMiles(sheet);
+
+  area.innerHTML = `
+    <div class="print-page">
+      <div class="p-header">
+        <h1>🚗 Mileage Log</h1>
+      </div>
+      <div class="print-meta">
+        <span><b>Licence Plate:</b> ${pv(sheet.licencePlate)}</span>
+        <span><b>Driver:</b> ${pv(sheet.driverName)}</span>
+        <span><b>Start Mileage:</b> ${pv(sheet.startMileage)}</span>
+        <span><b>End Mileage:</b> ${pv(sheet.endMileage)}</span>
+        <span><b>Start Date:</b> ${pv(sheet.startDate)}</span>
+        <span><b>End Date:</b> ${pv(sheet.endDate)}</span>
+      </div>
+      <div class="print-summary">${fmtNum(total)} total miles logged</div>
+      <table class="print-table">
+        <thead><tr><th>Name</th><th>Date/Time</th><th>Start Mi.</th><th>Final Mi.</th><th>Miles</th><th>Purpose</th><th>Route</th></tr></thead>
+        <tbody>${rowsHtml || '<tr><td colspan="7">No trips logged</td></tr>'}</tbody>
+      </table>
+      <div class="print-footer">Mileage Log — exported from your digital log</div>
+    </div>
+  `;
+  setTimeout(()=>window.print(), 60);
+}
+
+// ---------- confirm modal ----------
+function showConfirm(title, body, onOk){
+  const modal = document.getElementById('confirmModal');
+  document.getElementById('confirmTitle').textContent = title;
+  document.getElementById('confirmBody').textContent = body;
+  modal.classList.add('show');
+  const okBtn = document.getElementById('confirmOk');
+  const cancelBtn = document.getElementById('confirmCancel');
+  const cleanup = ()=>{ modal.classList.remove('show'); okBtn.onclick=null; cancelBtn.onclick=null; };
+  okBtn.onclick = ()=>{ cleanup(); onOk(); };
+  cancelBtn.onclick = cleanup;
+}
+function confirmClearAll(){
+  showConfirm('Clear all log sheets?', 'This deletes every log sheet you\'ve created on this device. It can\'t be undone.', ()=>{
+    sheets = []; saveSheets(); render();
+  });
+}
+function confirmDeleteSheet(id){
+  showConfirm('Delete this log sheet?', 'This log sheet and all its trips will be gone for good.', ()=>{
+    sheets = sheets.filter(s=>s.id!==id);
+    saveSheets();
+    if(view==='sheet' && currentId===id){ view='list'; }
+    render();
+  });
+}
+
+document.getElementById('storageToastClose').addEventListener('click', ()=>{
+  document.getElementById('storageToast').classList.remove('show');
+  if(storageToastTimer) clearTimeout(storageToastTimer);
+});
+
+// ---------- boot ----------
+loadAll();
+render();
+</script>
+</body>
+</html>
