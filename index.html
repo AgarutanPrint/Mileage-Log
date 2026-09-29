@@ -157,14 +157,6 @@
     border-radius:12px; padding:11px; width:100%; font-weight:800; font-size:13px; cursor:pointer; margin-top:4px;
   }
 
-  .export-btn{
-    width:100%; border:2px solid var(--steel); background:#fff; color:var(--steel);
-    font-family:'Nunito'; font-weight:800; font-size:13.5px;
-    padding:11px; border-radius:14px; cursor:pointer; margin-bottom:16px;
-    display:flex; align-items:center; justify-content:center; gap:8px;
-    transition:background .15s, color .15s;
-  }
-  .export-btn:hover{background:var(--steel); color:#fff;}
 
   .save-note{ text-align:center; font-size:11px; color:var(--ink-soft); margin-top:6px; }
 
@@ -205,15 +197,16 @@
     @page{ margin:10mm; }
   }
   .print-page{ font-family:'Nunito', sans-serif; color:#242A2E; }
-  .print-page .p-header{ text-align:center; margin-bottom:12px; }
-  .print-page .p-header h1{ font-family:'Poppins'; font-size:19px; color:var(--steel); margin:0 0 2px; }
-  .print-meta{ font-size:11px; margin-bottom:10px; display:flex; flex-wrap:wrap; gap:12px; }
-  .print-meta b{ color:var(--steel); }
-  table.print-table{ width:100%; border-collapse:collapse; font-size:9px; margin-bottom:8px; }
-  table.print-table th, table.print-table td{ border:1px solid #ccc; padding:3px 4px; text-align:left; }
-  table.print-table th{ background:#E9EBED; font-size:8.5px; text-transform:uppercase; }
-  .print-summary{ text-align:center; font-weight:800; color:var(--steel); font-size:13px; margin-bottom:10px; }
-  .print-footer{ text-align:center; font-size:9px; color:var(--ink-soft); margin-top:14px; }
+  table.print-head, table.print-table{ width:100%; border-collapse:collapse; table-layout:fixed; }
+  table.print-head + table.print-head{ margin-top:-1px; }
+  table.print-head{ font-size:11px; }
+  table.print-head th, table.print-head td{ border:1px solid #999; padding:5px 7px; }
+  table.print-head th{ background:#E9EBED; font-size:10px; text-align:center; }
+  table.print-head td{ height:22px; text-align:left; }
+  table.print-table{ font-size:9.5px; margin-top:6px; }
+  table.print-table th, table.print-table td{ border:1px solid #999; padding:4px 5px; text-align:left; word-wrap:break-word; }
+  table.print-table th{ background:#E9EBED; font-size:8.5px; text-align:center; }
+  table.print-table tfoot td{ background:#F4F5F6; font-weight:800; }
 
   @media (max-width:380px){ .trip-row2{ grid-template-columns:1fr 1fr; } }
 </style>
@@ -221,10 +214,8 @@
 <body>
 <div class="app" id="app">
   <div class="topbar">
-    <div id="topbarLeft" class="brand"><span class="ic">🚗</span><span>Mileage Log</span></div>
-    <div class="topbar-actions" id="topbarActions">
-      <button class="icon-btn" id="clearAllBtn" title="Clear all logs">↺</button>
-    </div>
+    <div id="topbarLeft" class="brand"></div>
+    <div class="topbar-actions" id="topbarActions"></div>
   </div>
   <div class="content" id="content"></div>
 </div>
@@ -252,7 +243,7 @@
 const LOGS_KEY = 'mileage-log:sheets';
 
 function blankTrip(){
-  return { name:'', dateTime:'', startMileage:'', finalMileage:'', milesTravelled:'', purpose:'', route:'' };
+  return { date:'', time:'', startMileage:'', finalMileage:'', milesTravelled:'', purpose:'', route:'' };
 }
 function blankSheet(){
   return {
@@ -270,7 +261,27 @@ let currentId = null;
 
 function loadAll(){
   try{ const raw = localStorage.getItem(LOGS_KEY); sheets = raw ? JSON.parse(raw) : []; }catch(e){ sheets = []; }
+  migrateSheets();
 }
+// Older versions saved a per-trip "name" and a combined "dateTime". Fold them into the
+// current fields so nothing a user already logged disappears.
+function migrateSheets(){
+  let changed = false;
+  sheets.forEach(s=>{
+    (s.trips||[]).forEach(t=>{
+      if('dateTime' in t || 'name' in t){
+        if(t.date===undefined) t.date = t.dateTime || '';
+        if(t.time===undefined) t.time = '';
+        if(t.name) t.purpose = t.purpose ? (t.name + ' — ' + t.purpose) : t.name;
+        delete t.dateTime; delete t.name;
+        changed = true;
+      }
+    });
+  });
+  if(changed) saveSheets();
+}
+function unitShort(){ return 'mi'; }
+function unitWord(){ return 'Miles'; }
 function saveSheets(){
   try{
     localStorage.setItem(LOGS_KEY, JSON.stringify(sheets));
@@ -341,15 +352,17 @@ function render(){
 function renderList(){
   const wrap = el('div');
 
-  const hero = el('div','hero');
-  hero.innerHTML = `
-    <div class="em">🚗</div>
-    <div class="txt">
-      <h1>Mileage Log</h1>
-      <p>${sheets.length} log sheet${sheets.length===1?'':'s'}</p>
-    </div>
-  `;
-  wrap.appendChild(hero);
+  if(sheets.length>0){
+    const hero = el('div','hero');
+    hero.innerHTML = `
+      <div class="em">🗂️</div>
+      <div class="txt">
+        <h1>${sheets.length} log sheet${sheets.length===1?'':'s'}</h1>
+        <p>Saved automatically on this device</p>
+      </div>
+    `;
+    wrap.appendChild(hero);
+  }
 
   const newBtn = el('button','new-btn','+ Start a New Log Sheet');
   newBtn.addEventListener('click', ()=>{
@@ -406,10 +419,6 @@ function renderSheetView(sheet){
   const wrap = el('div');
   function touch(){ sheet.updatedAt = Date.now(); saveSheets(); }
 
-  const exportBtn = el('button','export-btn','🖨️ Export / Print This Log');
-  exportBtn.addEventListener('click', ()=>exportSheetPDF(sheet));
-  wrap.appendChild(exportBtn);
-
   function textField(container, obj, key, labelText, placeholder){
     const f = el('div','field');
     f.innerHTML = `<label>${labelText}</label>`;
@@ -419,30 +428,29 @@ function renderSheetView(sheet){
     container.appendChild(f);
   }
 
-  const vehicleBlock = el('div','top-fields');
-  vehicleBlock.innerHTML = `<h2>🚙 Vehicle</h2>`;
-  textField(vehicleBlock, sheet, 'licencePlate', 'Licence Plate No');
-  const r1 = el('div','two-col'); vehicleBlock.appendChild(r1);
-  textField(r1, sheet, 'startMileage', 'Start Mileage');
-  textField(r1, sheet, 'endMileage', 'End Mileage');
-  wrap.appendChild(vehicleBlock);
-
+  // Same order as the printed page: Driver / Period first, then Vehicle / Odometer
   const driverBlock = el('div','top-fields');
   driverBlock.innerHTML = `<h2>🧑 Driver & Period</h2>`;
   textField(driverBlock, sheet, 'driverName', 'Driver Name');
-  const r2 = el('div','two-col'); driverBlock.appendChild(r2);
-  textField(r2, sheet, 'startDate', 'Start Date');
-  textField(r2, sheet, 'endDate', 'End Date');
+  const r1 = el('div','two-col'); driverBlock.appendChild(r1);
+  textField(r1, sheet, 'startDate', 'Period Start');
+  textField(r1, sheet, 'endDate', 'Period End');
   wrap.appendChild(driverBlock);
 
-  const summaryBar = el('div','summary-bar');
-  wrap.appendChild(summaryBar);
-  function renderSummary(){
-    const total = sumMiles(sheet);
-    const tripCount = sheet.trips.filter(t=>t.name||t.route||t.purpose).length;
-    summaryBar.innerHTML = `<span class="label">${tripCount} trip${tripCount===1?'':'s'} logged</span><span class="value">${fmtNum(total)} mi total</span>`;
+  const vehicleBlock = el('div','top-fields');
+  vehicleBlock.innerHTML = `<h2>🚙 Vehicle & Odometer</h2>`;
+  textField(vehicleBlock, sheet, 'licencePlate', 'Vehicle / Licence Plate');
+  const r2 = el('div','two-col'); vehicleBlock.appendChild(r2);
+  textField(r2, sheet, 'startMileage', 'Odometer Start');
+  textField(r2, sheet, 'endMileage', 'Odometer End');
+
+  wrap.appendChild(vehicleBlock);
+
+  const totalBar = el('div','summary-bar');
+  function updateTotal(){
+    totalBar.innerHTML = `<span class="label">Total Mileage</span><span class="value">${fmtNum(sumMiles(sheet))} mi</span>`;
   }
-  renderSummary();
+  updateTotal();
 
   const tripsBlock = el('div','top-fields');
   tripsBlock.innerHTML = `<h2>🛣️ Trips</h2>`;
@@ -453,7 +461,7 @@ function renderSheetView(sheet){
       const card = el('div','trip-card');
       if(sheet.trips.length>1){
         const rm = el('button','rm','✕');
-        rm.addEventListener('click', ()=>{ sheet.trips.splice(i,1); touch(); renderTrips(); renderSummary(); });
+        rm.addEventListener('click', ()=>{ sheet.trips.splice(i,1); touch(); renderTrips(); updateTotal(); });
         card.appendChild(rm);
       }
       function miniField(container, key, labelText, opts={}){
@@ -465,15 +473,15 @@ function renderSheetView(sheet){
         inp.addEventListener('input', ()=>{
           t[key] = inp.value; touch();
           if(key==='startMileage' || key==='finalMileage'){ updateAutoMiles(); }
-          renderSummary();
+          updateTotal();
         });
         f.appendChild(inp);
         container.appendChild(f);
         return inp;
       }
       const row1 = el('div','trip-row1');
-      miniField(row1, 'name', 'Name');
-      miniField(row1, 'dateTime', 'Date / Time');
+      miniField(row1, 'date', 'Date');
+      miniField(row1, 'time', 'Time');
       card.appendChild(row1);
 
       const row2 = el('div','trip-row2');
@@ -504,12 +512,14 @@ function renderSheetView(sheet){
   }
   renderTrips();
   tripsBlock.appendChild(tripsWrap);
-  const addBtn = el('button','add-trip-btn','+ Add Another Trip');
-  addBtn.addEventListener('click', ()=>{ sheet.trips.push(blankTrip()); touch(); renderTrips(); renderSummary(); });
+  const addBtn = el('button','add-trip-btn','+ Log New Trip');
+  addBtn.addEventListener('click', ()=>{ sheet.trips.push(blankTrip()); touch(); renderTrips(); updateTotal(); });
   tripsBlock.appendChild(addBtn);
   wrap.appendChild(tripsBlock);
 
-  const note = el('div','save-note','Everything here saves automatically on this device. Miles Travelled fills in automatically when Start and Final Mileage are both numbers — edit it yourself anytime.');
+  wrap.appendChild(totalBar);
+
+  const note = el('div','save-note','Everything here saves automatically on this device. Distance travelled fills in automatically when Start and Final Mileage are both numbers — edit it yourself anytime. Tap the 🖨️ at the top to print or export this log.');
   wrap.appendChild(note);
 
   return wrap;
@@ -520,33 +530,31 @@ function pv(val){ return val ? escapeHtml(val) : '—'; }
 function exportSheetPDF(sheet){
   const area = document.getElementById('printArea');
   const rowsHtml = sheet.trips
-    .filter(t=>t.name||t.dateTime||t.startMileage||t.finalMileage||t.purpose||t.route)
+    .filter(t=>t.date||t.time||t.startMileage||t.finalMileage||t.purpose||t.route)
     .map(t=>{
       const auto = computeMiles(t);
       const miles = auto!=null ? fmtNum(auto) : (t.milesTravelled || '—');
-      return `<tr><td>${pv(t.name)}</td><td>${pv(t.dateTime)}</td><td>${pv(t.startMileage)}</td><td>${pv(t.finalMileage)}</td><td>${miles}</td><td>${pv(t.purpose)}</td><td>${pv(t.route)}</td></tr>`;
+      return `<tr><td>${pv(t.date)}</td><td>${pv(t.time)}</td><td>${pv(t.startMileage)}</td><td>${pv(t.finalMileage)}</td><td>${miles}</td><td>${pv(t.purpose)}</td><td>${pv(t.route)}</td></tr>`;
     }).join('');
   const total = sumMiles(sheet);
+  const cols3 = '<colgroup><col style="width:44%"><col style="width:28%"><col style="width:28%"></colgroup>';
 
   area.innerHTML = `
     <div class="print-page">
-      <div class="p-header">
-        <h1>🚗 Mileage Log</h1>
-      </div>
-      <div class="print-meta">
-        <span><b>Licence Plate:</b> ${pv(sheet.licencePlate)}</span>
-        <span><b>Driver:</b> ${pv(sheet.driverName)}</span>
-        <span><b>Start Mileage:</b> ${pv(sheet.startMileage)}</span>
-        <span><b>End Mileage:</b> ${pv(sheet.endMileage)}</span>
-        <span><b>Start Date:</b> ${pv(sheet.startDate)}</span>
-        <span><b>End Date:</b> ${pv(sheet.endDate)}</span>
-      </div>
-      <div class="print-summary">${fmtNum(total)} total miles logged</div>
-      <table class="print-table">
-        <thead><tr><th>Name</th><th>Date/Time</th><th>Start Mi.</th><th>Final Mi.</th><th>Miles</th><th>Purpose</th><th>Route</th></tr></thead>
-        <tbody>${rowsHtml || '<tr><td colspan="7">No trips logged</td></tr>'}</tbody>
+      <table class="print-head">${cols3}
+        <thead><tr><th>Driver Name</th><th>Period Start</th><th>Period End</th></tr></thead>
+        <tbody><tr><td>${pv(sheet.driverName)}</td><td>${pv(sheet.startDate)}</td><td>${pv(sheet.endDate)}</td></tr></tbody>
       </table>
-      <div class="print-footer">Mileage Log — exported from your digital log</div>
+      <table class="print-head">${cols3}
+        <thead><tr><th>Vehicle / Licence Plate</th><th>Odometer Start</th><th>Odometer End</th></tr></thead>
+        <tbody><tr><td>${pv(sheet.licencePlate)}</td><td>${pv(sheet.startMileage)}</td><td>${pv(sheet.endMileage)}</td></tr></tbody>
+      </table>
+      <table class="print-table">
+        <colgroup><col style="width:12%"><col style="width:9%"><col style="width:10%"><col style="width:10%"><col style="width:11%"><col style="width:22%"><col style="width:26%"></colgroup>
+        <thead><tr><th>Date</th><th>Time</th><th>Start Mileage</th><th>Final Mileage</th><th>Miles Travelled</th><th>Purpose of the Trip</th><th>Travel Route</th></tr></thead>
+        <tbody>${rowsHtml || '<tr><td colspan="7">No trips logged</td></tr>'}</tbody>
+        <tfoot><tr><td colspan="2">Total Mileage</td><td></td><td></td><td>${fmtNum(total)} mi</td><td colspan="2"></td></tr></tfoot>
+      </table>
     </div>
   `;
   setTimeout(()=>window.print(), 60);
